@@ -1,0 +1,30 @@
+{% extends "admin/base.html" %}
+{% block content %}
+<div class="card">
+    <h2>📋 版块管理</h2>
+    <table>
+        <tr>
+            <th>ID</th>
+            <th>名称</th>
+            <th>描述</th>
+            <th>图标</th>
+            <th>颜色</th>
+            <th>排序</th>
+            <th>操作</th>
+        </tr>
+        {% for b in boards %}
+        <tr>
+            <td>{{ b[0] }}</td>
+            <td>{{ b[2] }}</td>
+            <td>{{ b[3] }}</td>
+            <td>{{ b[5] }}</td>
+            <td><span style="display:inline-block;width:20px;height:20px;background:{{ b[4] }};border-radius:4px;"></span> {{ b[4] }}</td>
+            <td>{{ b[7] }}</td>
+            <td>
+                <a href="/admin/board/{{ b[0] }}/edit" class="btn btn-ghost">编辑</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+{% endblock %}

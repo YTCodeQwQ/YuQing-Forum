@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}设置{% endblock %}
+{% block content %}
+
+<div class="nav-bar">
+  <a href="javascript:goBack()" class="back-btn">←</a>
+  <span class="nav-title">设置</span>
+</div>
+
+<div style="background:#fff;border:1px solid #e4e4e4;border-radius:8px;padding:20px;margin-top:16px">
+
+  <div class="section-title">个人信息</div>
+  <div id="profileError" style="display:none;background:#fff0f0;border:1px solid #fdd;color:#c00;padding:10px 14px;border-radius:6px;margin-bottom:12px;font-size:14px"></div>
+  <div id="profileSuccess" style="display:none;background:#f0fff0;border:1px solid #dfd;color:#270;padding:10px 14px;border-radius:6px;margin-bottom:12px;font-size:14px"></div>
+
+  <div class="form-group">
+    <label>昵称</label>
+    <input type="text" id="nickname" value="{{ user.nickname }}" style="width:100%;border:1px solid #ddd;border-radius:6px;padding:8px 10px">
+  </div>
+  <div class="form-group">
+    <label>头像URL</label>
+    <input type="text" id="avatar" value="{{ user.get('avatar', '') }}" placeholder="https://..." style="width:100%;border:1px solid #ddd;border-radius:6px;padding:8px 10px">
+  </div>
+  <div class="form-group">
+    <label>个人简介</label>
+    <textarea id="bio" placeholder="介绍一下自己" style="width:100%;border:1px solid #ddd;border-radius:6px;padding:8px 10px;min-height:80px;resize:vertical">{{ user.get('bio', '') }}</textarea>
+  </div>
+  <button class="btn" onclick="saveProfile()" style="background:#1a73e8;color:#fff;padding:10px 20px;border-radius:6px">保存修改</button>
+
+</div>
+
+<div style="background:#fff;border:1px solid #e4e4e4;border-radius:8px;padding:20px;margin-top:16px">
+  <div class="section-title">修改密码</div>
+  <div id="pwError" style="display:none;background:#fff0f0;border:1px solid #fdd;color:#c00;padding:10px 14px;border-radius:6px;margin-bottom:12px;font-size:14px"></div>
+  <div class="form-group">
+    <label>原密码</label>
+    <input type="password" id="oldPassword" style="width:100%;border:1px solid #ddd;border-radius:6px;padding:8px 10px">
+  </div>
+  <div class="form-group">
+    <label>新密码</label>
+    <input type="password" id="newPassword" placeholder="至少6位" style="width:100%;border:1px solid #ddd;border-radius:6px;padding:8px 10px">
+  </div>
+  <button class="btn" onclick="changePassword()" style="background:#1a73e8;color:#fff;padding:10px 20px;border-radius:6px">修改密码</button>
+</div>
+
+<script>
+function saveProfile() {
+  var nickname = document.getElementById('nickname').value.trim();
+  var avatar = document.getElementById('avatar').value.trim();
+  var bio = document.getElementById('bio').value.trim();
+  document.getElementById('profileError').style.display = 'none';
+  document.getElementById('profileSuccess').style.display = 'none';
+  if (!nickname) { alert('昵称不能为空'); return; }
+  fetch('/api/profile', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({nickname:nickname, avatar:avatar, bio:bio})
+  }).then(function(r){ return r.json(); })
+    .then(function(d){
+      if (d.success) {
+        document.getElementById('profileSuccess').textContent = '保存成功';
+        document.getElementById('profileSuccess').style.display = 'block';
+      } else {
+        document.getElementById('profileError').textContent = d.error || '保存失败';
+        document.getElementById('profileError').style.display = 'block';
+      }
+    });
+}
+
+function changePassword() {
+  var oldPw = document.getElementById('oldPassword').value;
+  var newPw = document.getElementById('newPassword').value;
+  document.getElementById('pwError').style.display = 'none';
+  if (newPw.length < 6) { alert('新密码至少6位'); return; }
+  fetch('/api/password', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({old_password:oldPw, new_password:newPw})
+  }).then(function(r){ return r.json(); })
+    .then(function(d){
+      if (d.success) {
+        alert('密码修改成功');
+        document.getElementById('oldPassword').value = '';
+        document.getElementById('newPassword').value = '';
+      } else {
+        document.getElementById('pwError').textContent = d.error || '修改失败';
+        document.getElementById('pwError').style.display = 'block';
+      }
+    });
+}
+</script>
+
+{% endblock %}

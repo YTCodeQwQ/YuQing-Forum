@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}登录{% endblock %}
+{% block content %}
+
+<div style="max-width:400px;margin:60px auto;background:#fff;border:1px solid #e4e4e4;border-radius:8px;padding:28px 24px">
+  <h2 style="text-align:center;margin-bottom:20px;font-size:20px;font-weight:700">登录</h2>
+
+  <div id="loginError" style="display:none;background:#fff0f0;border:1px solid #fdd;color:#c00;padding:10px 14px;border-radius:6px;margin-bottom:12px;font-size:14px"></div>
+
+  <div class="form-group">
+    <label>用户名</label>
+    <input type="text" id="username" placeholder="用户名" onkeydown="if(event.key==='Enter')doLogin()">
+  </div>
+  <div class="form-group">
+    <label>密码</label>
+    <input type="password" id="password" placeholder="密码" onkeydown="if(event.key==='Enter')doLogin()">
+  </div>
+  <button class="btn btn-block" onclick="doLogin()" style="background:#1a73e8;padding:12px;border-radius:6px;color:#fff">登录</button>
+  <div style="text-align:center;margin-top:16px;font-size:14px;color:#888">
+    还没有账号？<a href="/register">注册</a>
+  </div>
+</div>
+
+<script>
+function doLogin() {
+  var u = document.getElementById('username').value.trim();
+  var p = document.getElementById('password').value;
+  document.getElementById('loginError').style.display = 'none';
+  if (!u || !p) {
+    document.getElementById('loginError').textContent = '请填写用户名和密码';
+    document.getElementById('loginError').style.display = 'block';
+    return;
+  }
+  fetch('/api/login', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({username:u, password:p})
+  }).then(function(r){ return r.json(); })
+    .then(function(d){
+      if (d.success) {
+        location.href = d.location || '/';
+      } else {
+        document.getElementById('loginError').textContent = d.error || '登录失败';
+        document.getElementById('loginError').style.display = 'block';
+      }
+    });
+}
+</script>
+
+{% endblock %}

@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}添加畜生{% endblock %}
+{% block content %}
+
+<div class="nav-bar">
+  <a href="javascript:goBack()" class="back-btn">←</a>
+  <span class="nav-title">添加畜生</span>
+</div>
+
+<div style="padding:16px">
+  <div class="form-group">
+    <label>姓名</label>
+    <input type="text" id="nameChef" placeholder="输入姓名" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box">
+  </div>
+  <div class="form-group" style="margin-top:12px">
+    <label>简介（选填）</label>
+    <input type="text" id="descChef" placeholder="简要介绍" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box">
+  </div>
+  <div class="form-group" style="margin-top:12px">
+    <label>上传图片（选填）</label>
+    <input type="file" id="imageChef" accept="image/*" onchange="previewImage(this)" style="width:100%">
+    <div id="imagePreviewChef" style="display:none;margin-top:8px"></div>
+    <div id="uploadProgressChef" style="display:none;margin-top:8px">
+      <div style="height:4px;background:#f0f0f0;border-radius:2px;overflow:hidden">
+        <div id="progressBarChef" style="background:#d93025;height:100%;width:0%;transition:width 0.2s"></div>
+      </div>
+      <div style="font-size:12px;color:#999;margin-top:4px">上传中... <span id="progressTextChef">0%</span></div>
+    </div>
+  </div>
+  <button class="btn btn-block" onclick="addChef()" style="margin-top:20px;background:#d93025;color:#fff;padding:12px;border-radius:6px;border:none;width:100%;font-size:15px">添加</button>
+</div>
+
+<script>
+function previewImage(input) {
+  if (input.files && input.files[0]) {
+    var preview = document.getElementById('imagePreviewChef');
+    preview.innerHTML = '<img src="'+URL.createObjectURL(input.files[0])+'" style="max-width:200px;border-radius:6px">';
+    preview.style.display = 'block';
+  }
+}
+
+function addChef() {
+  var name = document.getElementById('nameChef').value.trim();
+  var desc = document.getElementById('descChef').value.trim();
+  var imageChef = document.getElementById('imageChef');
+  if (!name) return alert('请输入姓名');
+  var imageUrl = '';
+
+  function doAdd() {
+    fetch('/api/chef/add', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({name:name, description:desc, image_url:imageUrl})
+    }).then(function(r){ return r.json(); })
+      .then(function(d){ if(d.success) location.href='/chef'; else alert(d.error||'失败'); });
+  }
+
+  if (imageChef.files && imageChef.files[0]) {
+    var prog = document.getElementById('uploadProgressChef');
+    var bar = document.getElementById('progressBarChef');
+    var txt = document.getElementById('progressTextChef');
+    prog.style.display = 'block';
+    var xhr = new XMLHttpRequest();
+    xhr.upload.onprogress = function(e) {
+      var pct = Math.round(e.loaded/e.total*100);
+      bar.style.width = pct+'%';
+      txt.textContent = pct+'%';
+    };
+    xhr.onload = function() {
+      try {
+        var d = JSON.parse(xhr.responseText);
+        if (d.url) imageUrl = d.url;
+      } catch(e){}
+      doAdd();
+    };
+    var fd = new FormData();
+    fd.append('file', imageChef.files[0]);
+    xhr.open('POST', '/api/chef/upload');
+    xhr.send(fd);
+  } else {
+    doAdd();
+  }
+}
+</script>
+
+{% endblock %}

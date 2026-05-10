@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>管理后台</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f2f5; min-height: 100vh; }
+.header { background: #1a1a2e; color: #fff; padding: 0 24px; height: 56px; display: flex; align-items: center; justify-content: space-between; }
+.header a { color: #fff; text-decoration: none; font-size: 14px; }
+.header a:hover { text-decoration: underline; }
+.header-title { font-size: 16px; font-weight: 600; }
+.container { max-width: 1200px; margin: 24px auto; padding: 0 16px; }
+.panel { background: #fff; border-radius: 12px; padding: 20px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+.panel-title { font-size: 15px; font-weight: 600; color: #333; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid #eee; }
+.tabs { display: flex; gap: 0; border-bottom: 2px solid #e8e8e8; margin-bottom: 20px; }
+.tab { padding: 10px 20px; cursor: pointer; font-size: 14px; color: #666; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all .2s; }
+.tab:hover { color: #333; }
+.tab.active { color: #1a1a2e; border-color: #1a1a2e; font-weight: 600; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid #f0f0f0; }
+th { background: #fafafa; color: #555; font-weight: 600; font-size: 12px; }
+tr:hover td { background: #f9f9f9; }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+.badge-admin { background: #1a1a2e; color: #fff; }
+.badge-user { background: #e8e8e8; color: #555; }
+.badge-yes { background: #d4edda; color: #155724; }
+.btn { padding: 5px 12px; border-radius: 6px; border: none; cursor: pointer; font-size: 12px; transition: all .2s; }
+.btn-edit { background: #e8e8e8; color: #333; }
+.btn-edit:hover { background: #d0d0d0; }
+.btn-delete { background: #f8d7da; color: #721c24; }
+.btn-delete:hover { background: #f5c6cb; }
+.btn-save { background: #1a1a2e; color: #fff; padding: 6px 16px; font-size: 13px; }
+.btn-save:hover { background: #2d2d4a; }
+input[type="text"], input[type="number"], textarea { border: 1px solid #ddd; border-radius: 6px; padding: 6px 10px; font-size: 13px; width: 100%; }
+textarea { resize: vertical; min-height: 60px; }
+.form-row { display: flex; gap: 8px; align-items: flex-start; }
+.form-row > * { flex: 1; }
+.inline-edit { display: none; }
+.inline-edit.active { display: flex; gap: 6px; align-items: center; }
+.inline-edit input { flex: 1; }
+.inline-actions { display: flex; gap: 6px; }
+.inline-actions .btn { padding: 4px 10px; font-size: 11px; }
+.like-count-input { width: 60px; text-align: center; }
+.section-desc { font-size: 12px; color: #888; margin-bottom: 12px; }
+.stat-bar { display: flex; gap: 16px; }
+.stat-item { background: #f8f9fa; padding: 12px 20px; border-radius: 8px; text-align: center; }
+.stat-item .num { font-size: 22px; font-weight: 700; color: #1a1a2e; }
+.stat-item .label { font-size: 11px; color: #888; margin-top: 2px; }
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="header-title">管理后台</div>
+  <div>
+    <a href="/">返回首页</a>
+  </div>
+</div>
+
+<div class="container">
+  <div class="stat-bar">
+    <div class="stat-item"><div class="num">{{ famous|length }}</div><div class="label">畜生人物</div></div>
+    <div class="stat-item"><div class="num">{{ chef|length }}</div><div class="label">厨神人物</div></div>
+    <div class="stat-item"><div class="num">{{ users|length }}</div><div class="label">用户</div></div>
+    <div class="stat-item"><div class="num">{{ topics|length }}</div><div class="label">帖子</div></div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="tabs">
+    <div class="tab active" data-tab="famous">畜生榜</div>
+    <div class="tab" data-tab="chef">厨神榜</div>
+    <div class="tab" data-tab="users">用户管理</div>
+    <div class="tab" data-tab="levels">等级管理</div>
+    <div class="tab" data-tab="topics">帖子管理</div>
+    <div class="tab" data-tab="tags">🏷️标签</div>
+  </div>
+
+  <!-- 畜生榜 -->
+  <div class="tab-content active" id="tab-famous">
+    <div class="panel">
+      <div class="panel-title">畜生榜管理</div>
+      <table>
+        <thead>
+          <tr>
+            <th>编号</th><th>名称</th><th>描述</th><th>图片</th><th>赞数</th><th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for f in famous %}
+          <tr id="famous-row-{{ f.id }}">
+            <td>{{ f.number }}</td>
+            <td class="view-cell" id="fv-name-{{ f.id }}">{{ f.name }}</td>
+            <td class="view-cell" id="fv-desc-{{ f.id }}">{{ f.description or '—' }}</td>
+            <td class="view-cell" id="fv-img-{{ f.id }}">{% if f.image_url %}<a href="{{ f.image_url }}" target="_blank">查看</a>{% else %}—{% endif %}</td>
+            <td class="view-cell" id="fv-like-{{ f.id }}">{{ f.like_count }}</td>
+            <td class="inline-actions">
+              <button class="btn btn-edit" onclick="editFamous({{ f.id }})">编辑</button>
+              <button class="btn btn-delete" onclick="deleteFamous({{ f.id }})">删除</button>
+            </td>
+          </tr>
+          <tr class="inline-edit" id="famous-edit-{{ f.id }}">
+            <td>{{ f.number }}</td>
+            <td><input type="text" id="fe-name-{{ f.id }}" value="{{ f.name }}"></td>
+            <td><input type="text" id="fe-desc-{{ f.id }}" value="{{ f.description or '' }}"></td>
+            <td><input type="text" id="fe-img-{{ f.id }}" value="{{ f.image_url or '' }}"></td>
+            <td><input type="number" class="like-count-input" id="fe-like-{{ f.id }}" value="{{ f.like_count }}"></td>
+            <td>
+              <button class="btn btn-save" onclick="saveFamous({{ f.id }})">保存</button>
+              <button class="btn btn-edit" onclick="cancelFamous({{ f.id }})">取消</button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 厨神榜 -->
+  <div class="tab-content" id="tab-chef">
+    <div class="panel">
+      <div class="panel-title">厨神榜管理</div>
+      <table>
+        <thead>
+          <tr><th>编号</th><th>名称</th><th>描述</th><th>图片</th><th>赞数</th><th>操作</th></tr>
+        </thead>
+        <tbody>
+          {% for c in chef %}
+          <tr id="chef-row-{{ c.id }}">
+            <td>{{ c.number }}</td>
+            <td class="view-cell" id="cv-name-{{ c.id }}">{{ c.name }}</td>
+            <td class="view-cell" id="cv-desc-{{ c.id }}">{{ c.description or '—' }}</td>
+            <td class="view-cell" id="cv-img-{{ c.id }}">{% if c.image_url %}<a href="{{ c.image_url }}" target="_blank">查看</a>{% else %}—{% endif %}</td>
+            <td class="view-cell" id="cv-like-{{ c.id }}">{{ c.like_count }}</td>
+            <td class="inline-actions">
+              <button class="btn btn-edit" onclick="editChef({{ c.id }})">编辑</button>
+              <button class="btn btn-delete" onclick="deleteChef({{ c.id }})">删除</button>
+            </td>
+          </tr>
+          <tr class="inline-edit" id="chef-edit-{{ c.id }}">
+            <td>{{ c.number }}</td>
+            <td><input type="text" id="ce-name-{{ c.id }}" value="{{ c.name }}"></td>
+            <td><input type="text" id="ce-desc-{{ c.id }}" value="{{ c.description or '' }}"></td>
+            <td><input type="text" id="ce-img-{{ c.id }}" value="{{ c.image_url or '' }}"></td>
+            <td><input type="number" class="like-count-input" id="ce-like-{{ c.id }}" value="{{ c.like_count }}"></td>
+            <td>
+              <button class="btn btn-save" onclick="saveChef({{ c.id }})">保存</button>
+              <button class="btn btn-edit" onclick="cancelChef({{ c.id }})">取消</button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 用户管理 -->
+  <div class="tab-content" id="tab-users">
+    <div class="panel">
+      <div class="panel-title">用户管理</div>
+      <table>
+        <thead>
+          <tr><th>ID</th><th>用户名</th><th>昵称</th><th>等级</th><th>EXP</th><th>权限</th><th>标签</th><th>注册时间</th><th>操作</th></tr>
+        </thead>
+        <tbody>
+          {% for u in users %}
+          <tr id="user-row-{{ u.id }}">
+            <td>{{ u.id }}</td>
+            <td>{{ u.username }}</td>
+            <td class="view-cell" id="uv-name-{{ u.id }}">{{ u.nickname }}</td>
+            <td id="uv-level-{{ u.id }}">{{ u.level if u.level is not none else 0 }}</td>
+            <td id="uv-exp-{{ u.id }}">{{ u.exp if u.exp is not none else 0 }}</td>
+            <td>{% if u.is_admin %}<span class="badge badge-admin">管理员</span>{% else %}<span class="badge badge-user">普通</span>{% endif %}</td>
+            <td id="uv-tags-{{ u.id }}">
+              {% if user_tags.get(u.id) %}
+                {% for tid in user_tags[u.id] %}
+                  {% for t in tags %}
+                    {% if t[0] == tid %}
+                      <span style="display:inline-block;padding:1px 6px;border-radius:10px;font-size:11px;background:{{ t[2] }};color:#fff">{{ t[1] }}</span>
+                    {% endif %}
+                  {% endfor %}
+                {% endfor %}
+              {% else %}—{% endif %}
+            </td>
+            <td>{{ u.created_at[:16] if u.created_at else '—' }}</td>
+            <td>
+              <button class="btn btn-edit" onclick="editUser({{ u.id }})">编辑</button>
+            </td>
+          </tr>
+          <tr class="inline-edit" id="user-edit-{{ u.id }}">
+            <td>{{ u.id }}</td>
+            <td>{{ u.username }}</td>
+            <td><input type="text" id="ue-name-{{ u.id }}" value="{{ u.nickname }}"></td>
+            <td><input type="number" id="ue-level-{{ u.id }}" value="{{ u.level if u.level is not none else 0 }}" style="width:50px"></td>
+            <td><input type="number" id="ue-exp-{{ u.id }}" value="{{ u.exp if u.exp is not none else 0 }}" style="width:70px"></td>
+            <td>
+              <label style="font-size:12px"><input type="checkbox" id="ue-admin-{{ u.id }}" {% if u.is_admin %}checked{% endif %}> 管理员</label>
+            </td>
+            <td colspan="2" style="font-size:11px;line-height:1.6">
+              {% for t in tags %}
+                <label style="display:inline-block;margin:2px 4px"><input type="checkbox" class="utag-{{ u.id }}" value="{{ t[0] }}" {% if t[0] in user_tags.get(u.id, []) %}checked{% endif %}> <span style="display:inline-block;padding:0 5px;border-radius:8px;background:{{ t[2] }};color:#fff;font-size:11px">{{ t[1] }}</span></label>
+              {% endfor %}
+            </td>
+            <td>
+              <button class="btn btn-save" onclick="saveUser({{ u.id }})">保存</button>
+              <button class="btn btn-edit" onclick="cancelUser({{ u.id }})">取消</button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 等级管理 -->
+  <div class="tab-content" id="tab-levels">
+    <div class="panel">
+      <div class="panel-title">等级管理</div>
+      <p class="section-desc">直接修改用户等级和EXP。等级范围0-100，100为管理员专属彩虹等级。</p>
+      <table>
+        <thead>
+          <tr><th>ID</th><th>用户名</th><th>昵称</th><th>等级</th><th>EXP</th><th>下一级</th><th>称号</th><th>快速操作</th></tr>
+        </thead>
+        <tbody>
+          {% for u in users %}
+          <tr id="level-row-{{ u.id }}">
+            <td>{{ u.id }}</td>
+            <td>{{ u.username }}</td>
+            <td><a href="/user/{{ u.id }}" style="color:inherit">{{ u.nickname }}</a></td>
+            <td id="lv-level-{{ u.id }}">{{ u.level if u.level is not none else 0 }}</td>
+            <td id="lv-exp-{{ u.id }}">{{ u.exp if u.exp is not none else 0 }}</td>
+            <td id="lv-next-{{ u.id }}">{% if u.level is not none and u.level < 100 %}{{ (u.level + 1) ** 2 * 10 - (u.exp or 0) }}{% else %}—{% endif %}</td>
+            <td id="lv-title-{{ u.id }}">{% if u.level == 100 %}传说{% elif u.level >= 90 %}至尊{% elif u.level >= 80 %}大师{% elif u.level >= 70 %}专家{% elif u.level >= 60 %}老手{% elif u.level >= 50 %}熟练{% elif u.level >= 40 %}进阶{% elif u.level >= 30 %}入门{% elif u.level >= 20 %}新人{% elif u.level >= 10 %}新手{% elif u.level > 0 %}路人{% else %}游客{% endif %}</td>
+            <td>
+              <button class="btn btn-edit" onclick="setLevel({{ u.id }}, {{ u.level or 0 }})">改等级</button>
+            </td>
+          </tr>
+          <tr class="inline-edit" id="level-edit-{{ u.id }}">
+            <td>{{ u.id }}</td>
+            <td>{{ u.username }}</td>
+            <td>{{ u.nickname }}</td>
+            <td><input type="number" id="lve-level-{{ u.id }}" value="{{ u.level if u.level is not none else 0 }}" min="0" max="100" style="width:60px"></td>
+            <td><input type="number" id="lve-exp-{{ u.id }}" value="{{ u.exp if u.exp is not none else 0 }}" min="0" style="width:70px"></td>
+            <td colspan="2"></td>
+            <td>
+              <button class="btn btn-save" onclick="saveLevel({{ u.id }})">保存</button>
+              <button class="btn btn-edit" onclick="cancelLevel({{ u.id }})">取消</button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 帖子管理 -->
+  <div class="tab-content" id="tab-topics">
+    <div class="panel">
+      <div class="panel-title">帖子管理（可修改赞数）</div>
+      <table>
+        <thead>
+          <tr><th>ID</th><th>标题</th><th>作者ID</th><th>回复</th><th>赞数</th><th>操作</th></tr>
+        </thead>
+        <tbody>
+          {% for t in topics %}
+          <tr id="topic-row-{{ t.id }}">
+            <td>{{ t.id }}</td>
+            <td><a href="/topic/{{ t.id }}" target="_blank">{{ t.title[:30] }}</a></td>
+            <td>{{ t.user_id }}</td>
+            <td>{{ t.reply_count }}</td>
+            <td class="view-cell" id="tv-like-{{ t.id }}">{{ t.like_count }}</td>
+            <td>
+              <button class="btn btn-edit" onclick="editTopicLikes({{ t.id }})">改赞数</button>
+            </td>
+          </tr>
+          <tr class="inline-edit" id="topic-edit-{{ t.id }}">
+            <td>{{ t.id }}</td>
+            <td><a href="/topic/{{ t.id }}" target="_blank">{{ t.title[:30] }}</a></td>
+            <td>{{ t.user_id }}</td>
+            <td>{{ t.reply_count }}</td>
+            <td><input type="number" class="like-count-input" id="te-like-{{ t.id }}" value="{{ t.like_count }}"></td>
+            <td>
+              <button class="btn btn-save" onclick="saveTopicLikes({{ t.id }})">保存</button>
+              <button class="btn btn-edit" onclick="cancelTopicLikes({{ t.id }})">取消</button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 标签管理 -->
+  <div class="tab-content" id="tab-tags">
+    <div class="panel">
+      <div class="panel-title">标签管理 <span style="font-weight:normal;color:#888;font-size:12px">（标签可分配给用户）</span></div>
+      <div style="margin-bottom:12px;display:flex;gap:8px;align-items:center">
+        <input type="text" id="new-tag-name" placeholder="标签名称" style="width:150px">
+        <input type="color" id="new-tag-color" value="#888888" style="width:40px;height:32px;padding:0;border:none;cursor:pointer">
+        <button class="btn btn-save" onclick="addTag()">+ 添加标签</button>
+      </div>
+      <table>
+        <thead>
+          <tr><th>ID</th><th>名称</th><th>颜色</th><th>用户数</th><th>操作</th></tr>
+        </thead>
+        <tbody id="tags-table-body">
+          {% for t in tags %}
+          <tr id="tag-row-{{ t[0] }}">
+            <td>{{ t[0] }}</td>
+            <td class="view-cell" id="tv-name-{{ t[0] }}">{{ t[1] }}</td>
+            <td class="view-cell" id="tv-color-{{ t[0] }}"><span style="display:inline-block;width:60px;height:20px;background:{{ t[2] }};border-radius:4px"></span></td>
+            <td class="view-cell" id="tv-count-{{ t[0] }}">{{ tag_counts.get(t[0], 0) }}</td>
+            <td class="inline-actions">
+              <button class="btn btn-edit" onclick="editTag({{ t[0] }})">编辑</button>
+              <button class="btn btn-delete" onclick="deleteTag({{ t[0] }})">删除</button>
+            </td>
+          </tr>
+          <tr class="inline-edit" id="tag-edit-{{ t[0] }}">
+            <td>{{ t[0] }}</td>
+            <td><input type="text" id="te-name-{{ t[0] }}" value="{{ t[1] }}"></td>
+            <td><input type="color" id="te-color-{{ t[0] }}" value="{{ t[2] }}" style="width:40px;height:32px;padding:0;border:none;cursor:pointer"></td>
+            <td>{{ tag_counts.get(t[0], 0) }}</td>
+            <td>
+              <button class="btn btn-save" onclick="saveTag({{ t[0] }})">保存</button>
+              <button class="btn btn-edit" onclick="cancelTag({{ t[0] }})">取消</button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+// Tab switching
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+  });
+});
+
+// --- Famous ---
+function editFamous(id) {
+  document.getElementById('famous-row-' + id).style.display = 'none';
+  document.getElementById('famous-edit-' + id).classList.add('active');
+}
+function cancelFamous(id) {
+  document.getElementById('famous-row-' + id).style.display = '';
+  document.getElementById('famous-edit-' + id).classList.remove('active');
+}
+function saveFamous(id) {
+  var name = document.getElementById('fe-name-' + id).value.trim();
+  var desc = document.getElementById('fe-desc-' + id).value.trim();
+  var img = document.getElementById('fe-img-' + id).value.trim();
+  var like = parseInt(document.getElementById('fe-like-' + id).value) || 0;
+  if (!name) return alert('名称不能为空');
+  fetch('/api/admin/famous/' + id, {
+    method: 'PUT',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({name: name, description: desc, image_url: img, like_count: like})
+  }).then(r => r.json()).then(d => {
+    if (d.success) {
+      document.getElementById('fv-name-' + id).textContent = name;
+      document.getElementById('fv-desc-' + id).textContent = desc || '—';
+      document.getElementById('fv-img-' + id).innerHTML = img ? '<a href="' + img + '" target="_blank">查看</a>' : '—';
+      document.getElementById('fv-like-' + id).textContent = like;
+      cancelFamous(id);
+    } else alert(d.error);
+  });
+}
+function deleteFamous(id) {
+  if (!confirm('确认删除此人物？')) return;
+  fetch('/api/admin/famous/' + id, {method: 'DELETE'}).then(r => r.json()).then(d => {
+    if (d.success) { document.getElementById('famous-row-' + id).remove(); document.getElementById('famous-edit-' + id).remove(); }
+    else alert(d.error);
+  });
+}
+
+// --- Chef ---
+function editChef(id) {
+  document.getElementById('chef-row-' + id).style.display = 'none';
+  document.getElementById('chef-edit-' + id).classList.add('active');
+}
+function cancelChef(id) {
+  document.getElementById('chef-row-' + id).style.display = '';
+  document.getElementById('chef-edit-' + id).classList.remove('active');
+}
+function saveChef(id) {
+  var name = document.getElementById('ce-name-' + id).value.trim();
+  var desc = document.getElementById('ce-desc-' + id).value.trim();
+  var img = document.getElementById('ce-img-' + id).value.trim();
+  var like = parseInt(document.getElementById('ce-like-' + id).value) || 0;
+  if (!name) return alert('名称不能为空');
+  fetch('/api/admin/chef/' + id, {
+    method: 'PUT',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({name: name, description: desc, image_url: img, like_count: like})
+  }).then(r => r.json()).then(d => {
+    if (d.success) {
+      document.getElementById('cv-name-' + id).textContent = name;
+      document.getElementById('cv-desc-' + id).textContent = desc || '—';
+      document.getElementById('cv-img-' + id).innerHTML = img ? '<a href="' + img + '" target="_blank">查看</a>' : '—';
+      document.getElementById('cv-like-' + id).textContent = like;
+      cancelChef(id);
+    } else alert(d.error);
+  });
+}
+function deleteChef(id) {
+  if (!confirm('确认删除此人物？')) return;
+  fetch('/api/admin/chef/' + id, {method: 'DELETE'}).then(r => r.json()).then(d => {
+    if (d.success) { document.getElementById('chef-row-' + id).remove(); document.getElementById('chef-edit-' + id).remove(); }
+    else alert(d.error);
+  });
+}
+
+// --- Users ---
+function editUser(id) {
+  document.getElementById('user-row-' + id).style.display = 'none';
+  document.getElementById('user-edit-' + id).classList.add('active');
+}
+function cancelUser(id) {
+  document.getElementById('user-row-' + id).style.display = '';
+  document.getElementById('user-edit-' + id).classList.remove('active');
+}
+function saveUser(id) {
+  var nickname = document.getElementById('ue-name-' + id).value.trim();
+  var level = parseInt(document.getElementById('ue-level-' + id).value) || 0;
+  var exp = parseInt(document.getElementById('ue-exp-' + id).value) || 0;
+  var is_admin = document.getElementById('ue-admin-' + id).checked;
+  // collect selected tags
+  var tag_ids = [];
+  document.querySelectorAll('.utag-' + id + ':checked').forEach(function(cb) {
+    tag_ids.push(parseInt(cb.value));
+  });
+  if (!nickname) return alert('昵称不能为空');
+  // save user info
+  fetch('/api/admin/users/' + id, {
+    method: 'PUT',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({nickname: nickname, level: level, exp: exp, is_admin: is_admin})
+  }).then(function(r) { return r.json(); }).then(function(d) {
+    if (!d.success) return alert(d.error);
+    // save tags
+    return fetch('/api/admin/user/' + id + '/tags', {
+      method: 'PUT',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({tag_ids: tag_ids})
+    });
+  }).then(function(r) { return r.json(); }).then(function(d) {
+    if (d.success) location.reload();
+    else alert(d.error);
+  }).catch(function(e) { alert('保存失败'); });
+}
+
+// --- Topics ---
+function editTopicLikes(id) {
+  document.getElementById('topic-row-' + id).style.display = 'none';
+  document.getElementById('topic-edit-' + id).classList.add('active');
+}
+function cancelTopicLikes(id) {
+  document.getElementById('topic-row-' + id).style.display = '';
+  document.getElementById('topic-edit-' + id).classList.remove('active');
+}
+function saveTopicLikes(id) {
+  var like = parseInt(document.getElementById('te-like-' + id).value) || 0;
+  fetch('/api/admin/topics/' + id + '/likes', {
+    method: 'PUT',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({like_count: like})
+  }).then(r => r.json()).then(d => {
+    if (d.success) {
+      document.getElementById('tv-like-' + id).textContent = like;
+      cancelTopicLikes(id);
+    } else alert(d.error);
+  });
+}
+
+// --- Levels ---
+function setLevel(id, level) {
+  document.getElementById('level-row-' + id).style.display = 'none';
+  document.getElementById('level-edit-' + id).classList.add('active');
+}
+function cancelLevel(id) {
+  document.getElementById('level-row-' + id).style.display = '';
+  document.getElementById('level-edit-' + id).classList.remove('active');
+}
+function saveLevel(id) {
+  var level = parseInt(document.getElementById('lve-level-' + id).value) || 0;
+  var exp = parseInt(document.getElementById('lve-exp-' + id).value) || 0;
+  if (level < 0 || level > 100) return alert('等级必须在0-100之间');
+  fetch('/api/admin/users/' + id, {
+    method: 'PUT',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({level: level, exp: exp})
+  }).then(r => r.json()).then(d => {
+    if (d.success) location.reload();
+    else alert(d.error);
+  });
+}
+
+// --- Tags ---
+function addTag() {
+  var name = document.getElementById('new-tag-name').value.trim();
+  var color = document.getElementById('new-tag-color').value;
+  if (!name) return alert('标签名称不能为空');
+  fetch('/api/admin/tag/add', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({name: name, color: color})
+  }).then(r => r.json()).then(d => {
+    if (d.success) location.reload();
+    else alert(d.error);
+  });
+}
+function editTag(id) {
+  document.getElementById('tag-row-' + id).style.display = 'none';
+  document.getElementById('tag-edit-' + id).classList.add('active');
+}
+function cancelTag(id) {
+  document.getElementById('tag-row-' + id).style.display = '';
+  document.getElementById('tag-edit-' + id).classList.remove('active');
+}
+function saveTag(id) {
+  var name = document.getElementById('te-name-' + id).value.trim();
+  var color = document.getElementById('te-color-' + id).value;
+  if (!name) return alert('标签名称不能为空');
+  fetch('/api/admin/tag/' + id, {
+    method: 'PUT',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({name: name, color: color})
+  }).then(r => r.json()).then(d => {
+    if (d.success) location.reload();
+    else alert(d.error);
+  });
+}
+function deleteTag(id) {
+  if (!confirm('确认删除此标签？')) return;
+  fetch('/api/admin/tag/' + id, {method: 'DELETE'}).then(r => r.json()).then(d => {
+    if (d.success) location.reload();
+    else alert(d.error);
+  });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>管理员后台</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, sans-serif; background: #f5f5f5; min-height: 100vh; }
+.header { background: #1a1a1a; color: #fff; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; }
+.header h1 { font-size: 20px; }
+.header a { color: #fff; text-decoration: none; margin-left: 20px; }
+.header a:hover { text-decoration: underline; }
+.container { max-width: 1200px; margin: 20px auto; padding: 0 20px; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 30px; }
+.stat-card { background: #fff; border-radius: 8px; padding: 20px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+.stat-card .num { font-size: 32px; font-weight: bold; color: #1a73e8; }
+.stat-card .label { color: #666; margin-top: 5px; }
+.nav { background: #fff; border-radius: 8px; padding: 15px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; flex-wrap: wrap; gap: 8px; }
+.nav a { color: #1a73e8; text-decoration: none; padding: 8px 16px; border-radius: 4px; display: inline-block; }
+.nav a:hover, .nav a.active { background: #1a73e8; color: #fff; }
+.card { background: #fff; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+.card h2 { margin-bottom: 15px; font-size: 18px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 10px; text-align: left; border-bottom: 1px solid #eee; }
+th { background: #fafafa; font-weight: 600; }
+tr:hover { background: #fafafa; }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; }
+.badge-admin { background: #d93025; color: #fff; }
+.badge-user { background: #888; color: #fff; }
+.badge-banned { background: #f00; color: #fff; }
+.btn { padding: 5px 12px; border-radius: 4px; border: none; cursor: pointer; font-size: 13px; text-decoration: none; display: inline-block; }
+.btn-primary { background: #1a73e8; color: #fff; }
+.btn-danger { background: #d93025; color: #fff; }
+.btn-success { background: #28a745; color: #fff; }
+.btn-ghost { background: #f5f5f5; color: #666; }
+.btn:hover { opacity: 0.9; }
+.form-group { margin-bottom: 15px; }
+.form-group label { display: block; margin-bottom: 5px; font-weight: 500; }
+.form-group input, .form-group textarea, .form-group select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; }
+.form-group textarea { min-height: 100px; }
+.search-box { display: flex; gap: 10px; margin-bottom: 20px; }
+.search-box input { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
+</style>
+</head>
+<body>
+<div class="header">
+    <h1>🛠️ 管理员后台</h1>
+    <div>
+        <a href="/">← 返回论坛</a>
+        <a href="/manage/">首页</a>
+        <a href="/manage/users">用户</a>
+        <a href="/manage/topics">帖子</a>
+        <a href="/manage/tags">🏷️标签</a>
+        <a href="/manage/famous">风云榜</a>
+        <a href="/manage/chef">畜生榜</a>
+        <a href="/logout">退出</a>
+    </div>
+</div>
+
+<div class="container">
+    {% block content %}{% endblock %}
+</div>
+
+<script>
+function confirmDelete(url, name) {
+    if (confirm('确认删除 ' + name + '？')) {
+        fetch(url, { method: 'POST' })
+            .then(r => r.json())
+            .then(d => { if (d.success) location.reload(); })
+            .catch(e => alert('操作失败'));
+    }
+}
+</script>
+</body>
+</html>

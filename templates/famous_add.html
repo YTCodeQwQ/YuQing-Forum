@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}添加风云人物{% endblock %}
+{% block content %}
+
+<div class="nav-bar">
+  <a href="javascript:goBack()" class="back-btn">←</a>
+  <span class="nav-title">添加风云人物</span>
+</div>
+
+<div style="padding:16px">
+  <div class="form-group">
+    <label>姓名</label>
+    <input type="text" id="nameInput" placeholder="输入姓名" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box">
+  </div>
+  <div class="form-group" style="margin-top:12px">
+    <label>简介（选填）</label>
+    <input type="text" id="descInput" placeholder="简要介绍" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box">
+  </div>
+  <div class="form-group" style="margin-top:12px">
+    <label>上传图片（选填）</label>
+    <input type="file" id="imageInput" accept="image/*" onchange="previewImage(this)" style="width:100%">
+    <div id="imagePreview" style="display:none;margin-top:8px"></div>
+  </div>
+  <button class="btn btn-block" onclick="addFamous()" style="margin-top:20px;background:#1a73e8;color:#fff;padding:12px;border-radius:6px;border:none;width:100%;font-size:15px">添加</button>
+</div>
+
+<script>
+function previewImage(input) {
+  if (input.files && input.files[0]) {
+    var preview = document.getElementById('imagePreview');
+    preview.innerHTML = '<img src="'+URL.createObjectURL(input.files[0])+'" style="max-width:200px;border-radius:6px">';
+    preview.style.display = 'block';
+  }
+}
+
+function addFamous() {
+  var name = document.getElementById('nameInput').value.trim();
+  var desc = document.getElementById('descInput').value.trim();
+  var imageInput = document.getElementById('imageInput');
+  if (!name) return alert('请输入姓名');
+  var imageUrl = '';
+
+  function doAdd() {
+    fetch('/api/famous/add', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({name:name, description:desc, image_url:imageUrl})
+    }).then(function(r){ return r.json(); })
+      .then(function(d){ if(d.success) location.href='/famous'; else alert(d.error||'失败'); });
+  }
+
+  if (imageInput.files && imageInput.files[0]) {
+    var fd = new FormData();
+    fd.append('file', imageInput.files[0]);
+    fetch('/api/famous/upload', {method:'POST', body:fd})
+      .then(function(r){ return r.json(); })
+      .then(function(d){ if(d.url) imageUrl = d.url; doAdd(); });
+  } else {
+    doAdd();
+  }
+}
+</script>
+
+{% endblock %}

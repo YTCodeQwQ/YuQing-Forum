@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% block title %}畜生榜{% endblock %}
+{% block content %}
+
+<div class="nav-bar">
+  <a href="javascript:goBack()" class="back-btn">←</a>
+  <span class="nav-title">畜生榜</span>
+  {% if user %}
+  <a href="/chef/add" class="btn" style="margin-left:auto;padding:4px 12px;font-size:12px;background:#d93025;color:#fff;border-radius:4px">+ 添加</a>
+  {% endif %}
+</div>
+
+{% if chef_list|length >= 3 %}
+{% set p1 = chef_list[0] %}
+{% set p2 = chef_list[1] %}
+{% set p3 = chef_list[2] %}
+<div class="podium">
+  <div class="podium-place place-2">
+    <div class="rank-photo">{% if p2.image_url %}<img src="{{ p2.image_url }}">{% endif %}</div>
+    <div class="rank-num">{{ p2.number }}</div>
+    <div class="rank-name">{{ p2.name }}</div>
+    <div class="rank-likes">{{ p2.like_count }} 赞</div>
+  </div>
+  <div class="podium-place place-1">
+    <div class="rank-photo">{% if p1.image_url %}<img src="{{ p1.image_url }}">{% endif %}</div>
+    <div class="rank-num">{{ p1.number }}</div>
+    <div class="rank-name">{{ p1.name }}</div>
+    <div class="rank-likes">{{ p1.like_count }} 赞</div>
+  </div>
+  <div class="podium-place place-3">
+    <div class="rank-photo">{% if p3.image_url %}<img src="{{ p3.image_url }}">{% endif %}</div>
+    <div class="rank-num">{{ p3.number }}</div>
+    <div class="rank-name">{{ p3.name }}</div>
+    <div class="rank-likes">{{ p3.like_count }} 赞</div>
+  </div>
+</div>
+{% endif %}
+
+<div class="search-bar">
+  <input type="text" id="searchInput" placeholder="搜索编号..." oninput="doSearch()">
+</div>
+
+<div class="rank-list" id="rankList">
+{% for f in chef_list %}
+  <div class="rank-item" data-num="{{ f.number }}" onclick="showDetailChef({{ f.id }})">
+    <div class="rank-num">{{ f.number }}</div>
+    <div class="rank-photo">{% if f.image_url %}<img src="{{ f.image_url }}">{% endif %}</div>
+    <div>
+      <div class="rank-name">{{ f.name }}</div>
+      {% if f.description %}<div class="rank-desc">{{ f.description }}</div>{% endif %}
+    </div>
+    <div class="rank-likes">{{ f.like_count }} 赞</div>
+  </div>
+{% else %}
+  <div class="empty-state">暂无人物，快来添加</div>
+{% endfor %}
+<div id="noResult" class="empty-state" style="display:none">没有找到</div>
+</div>
+
+{% for f in chef_list %}
+<div id="modal-{{ f.id }}" class="modal-overlay" onclick="closeDetailChef(event, {{ f.id }})">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <span class="modal-close" onclick="closeDetailChefDirect({{ f.id }})">×</span>
+    {% if f.image_url %}
+    <div style="width:100%;height:180px;background:#f5f5f5;border-radius:8px;margin-bottom:16px;overflow:hidden">
+      <img src="{{ f.image_url }}" style="width:100%;height:100%;object-fit:cover">
+    </div>
+    {% endif %}
+    <div class="modal-name">{{ f.name }}</div>
+    <div class="modal-desc">{{ f.description or '暂无简介' }}</div>
+    <div class="modal-meta">编号 {{ f.number }} · {{ f.like_count }} 赞 · by {{ f.adder_name }}</div>
+    <div class="modal-actions">
+      <button class="btn like-btn{% if f.id in liked_ids %} liked{% endif %}" onclick="likeChef({{ f.id }})" style="flex:1">
+        {{ '已赞' if f.id in liked_ids else '赞' }} {{ f.like_count }}
+      </button>
+      {% if user and user.is_admin %}
+      <button class="btn" style="background:#d93025;color:#fff" onclick="deleteChef({{ f.id }})">删除</button>
+      {% endif %}
+    </div>
+
+    <div class="comment-section">
+      <h4>评论</h4>
+      <div class="comment-list" style="max-height:200px;overflow-y:auto">
+      {% for c in all_comments.get(f.id, []) %}
+      <div class="comment-item">
+        <span class="c-user">{{ c.commenter_name or "匿名" }}</span>
+        <span class="c-text">{{ c.content }}</span>
+        <span class="c-time">{{ c.created_at[:16] }}</span>
+      </div>
+      {% endfor %}
+      </div>
+      {% if user %}
+      <div class="comment-input-wrap" style="margin-top:8px">
+        <input type="text" id="comment-input-{{ f.id }}" placeholder="说点什么..." onkeydown="if(event.key===13)addComment(this)" data-id="{{ f.id }}">
+        <button class="btn" onclick="addComment(this)" data-id="{{ f.id }}">发送</button>
+      </div>
+      {% else %}
+      <div style="font-size:13px;color:#999;text-align:center;padding:8px">
+        <a href="/login">登录</a> 后发表评论
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+<script>
+function doSearch() {
+  var q = document.getElementById('searchInput').value.trim().toLowerCase();
+  var items = document.querySelectorAll('.rank-item[data-num]');
+  var found = 0;
+  items.forEach(function(item) {
+    var match = !q || item.dataset.num.toString().toLowerCase().includes(q);
+    item.style.display = match ? '' : 'none';
+    if (match) found++;
+  });
+  document.getElementById('noResult').style.display = found === 0 ? 'block' : 'none';
+}
+
+function showDetailChef(id) { document.getElementById('modal-'+id).classList.add('show'); }
+function closeDetailChef(e, id) { if (e) e.stopPropagation(); document.getElementById('modal-'+id).classList.remove('show'); }
+function closeDetailChefDirect(id) { document.getElementById('modal-'+id).classList.remove('show'); }
+
+function likeChef(id) {
+  fetch('/api/chef/like', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({chef_id:id})
+  }).then(function(r){ return r.json(); })
+    .then(function(d){ if(d.success) location.reload(); });
+}
+
+function deleteChef(id) {
+  if (!confirm('确认删除？')) return;
+  fetch('/api/chef/delete', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({chef_id:id})
+  }).then(function(r){ return r.json(); })
+    .then(function(d){ if(d.success) location.reload(); });
+}
+
+function addComment(el) {
+  var id = el.getAttribute('data-id');
+  var input = el.closest('.comment-input-wrap').querySelector('input');
+  var content = input.value.trim();
+  if (!content) return;
+  fetch('/api/chef/comment', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({chef_id:id, content:content})
+  }).then(function(r){ return r.json(); })
+    .then(function(d){ if(d.success) location.reload(); else alert(d.error||'失败'); });
+}
+</script>
+
+{% endblock %}

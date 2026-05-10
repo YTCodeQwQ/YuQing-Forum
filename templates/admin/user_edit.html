@@ -1,0 +1,50 @@
+{% extends "admin/base.html" %}
+{% block content %}
+<div class="card">
+    <h2>✏️ 编辑用户</h2>
+    <form method="POST">
+        <div class="form-group">
+            <label>昵称</label>
+            <input type="text" name="nickname" value="{{ user[2] }}" required>
+        </div>
+        <div class="form-group">
+            <label>等级</label>
+            <input type="number" name="level" value="{{ user[8] }}" min="0" max="100">
+        </div>
+        <div class="form-group">
+            <label>经验值</label>
+            <input type="number" name="exp" value="{{ user[9] }}" min="0">
+        </div>
+        <div class="form-group">
+            <label>
+                <input type="checkbox" name="is_admin" {% if user[6] %}checked{% endif %}>
+                管理员
+            </label>
+        </div>
+        <div class="form-group">
+            <label>
+                <input type="checkbox" name="is_banned" {% if user[10] %}checked{% endif %}>
+                封禁
+            </label>
+        </div>
+        
+        <div class="form-group">
+            <label>用户标签</label>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; background: #fafafa;">
+                {% for tag in all_tags %}
+                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                    <input type="checkbox" name="tags" value="{{ tag[0] }}" 
+                           {% if tag[0] in user_tags %}checked{% endif %}
+                           style="width: 16px; height: 16px;">
+                    <span style="display: inline-block; padding: 2px 8px; background: {{ tag[2] }}; color: #fff; border-radius: 10px; font-size: 12px;">{{ tag[1] }}</span>
+                </label>
+                {% endfor %}
+            </div>
+            <small style="color: #888;">选择此用户拥有的标签</small>
+        </div>
+        
+        <button type="submit" class="btn btn-primary">保存</button>
+        <a href="/admin/users" class="btn btn-ghost">取消</a>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}发新帖{% endblock %}
+{% block content %}
+
+<div class="nav-bar">
+  <a href="javascript:goBack()" class="back-btn">←</a>
+  <span class="nav-title">发新帖</span>
+</div>
+
+<div style="background:#fff;border:1px solid #e4e4e4;border-radius:8px;padding:20px">
+  <div class="form-group">
+    <label>标题</label>
+    <input type="text" id="titleInput" placeholder="标题" maxlength="100">
+  </div>
+  <div class="form-group">
+    <label>内容</label>
+    <textarea id="contentInput" placeholder="说点什么..." style="min-height:140px;resize:vertical"></textarea>
+  </div>
+  <div class="form-group">
+    <label>
+      <input type="file" id="topicMedia" accept="image/*,video/*" style="display:none" onchange="previewTopicMedia(this)">
+      <span style="cursor:pointer;font-size:16px">📎 添加图片/视频</span>
+    </label>
+    <div id="mediaPreview" style="display:none;margin-top:8px" class="upload-preview"></div>
+  </div>
+  <div style="margin-bottom:16px">
+    <input type="checkbox" id="anonCheck" style="accent-color:#1a73e8">
+    <label for="anonCheck" style="display:inline;font-size:14px;color:#555">匿名发帖</label>
+  </div>
+  <button class="btn btn-block" id="topicSubmitBtn" onclick="postTopic()" style="background:#1a73e8;padding:12px;border-radius:6px;color:#fff">发布</button>
+</div>
+
+<div id="mediaUrl" style="display:none"></div>
+<div id="mediaType" style="display:none"></div>
+
+<script>
+var topicMediaBlobUrl = null;
+function previewTopicMedia(input) {
+  if (topicMediaBlobUrl) { URL.revokeObjectURL(topicMediaBlobUrl); topicMediaBlobUrl = null; }
+  if (input.files && input.files[0]) {
+    var preview = document.getElementById('mediaPreview');
+    var file = input.files[0];
+    topicMediaBlobUrl = URL.createObjectURL(file);
+    if (file.type.startsWith('video/')) {
+      preview.innerHTML = '<video src="'+topicMediaBlobUrl+'" controls style="max-width:120px;max-height:80px;border-radius:6px"></video>';
+    } else {
+      preview.innerHTML = '<img src="'+topicMediaBlobUrl+'">';
+    }
+    preview.style.display = 'block';
+  }
+}
+
+function postTopic() {
+  var title = document.getElementById('titleInput').value.trim();
+  var content = document.getElementById('contentInput').value.trim();
+  var isAnonymous = document.getElementById('anonCheck').checked;
+  var mediaInput = document.getElementById('topicMedia');
+  var mediaUrl = '', mediaType = '';
+  if (!title || !content) return alert('标题和内容不能为空');
+
+  var btn = document.getElementById('topicSubmitBtn');
+  btn.disabled = true;
+  btn.textContent = '发布中...';
+
+  function doPost() {
+    fetch('/api/topic', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({title:title, content:content, board_id:{{ board.id }}, is_anonymous:isAnonymous, media_url:mediaUrl, media_type:mediaType})
+    }).then(function(r){ return r.json(); })
+      .then(function(d){ btn.disabled = false; btn.textContent = '发布'; if(d.success) { if(topicMediaBlobUrl){URL.revokeObjectURL(topicMediaBlobUrl);topicMediaBlobUrl=null;} location.href='/board/{{ board.slug }}'; } else alert(d.error||'发布失败'); });
+  }
+
+  if (mediaInput.files && mediaInput.files[0]) {
+    var fd = new FormData();
+    fd.append('file', mediaInput.files[0]);
+    fetch('/api/upload', {method:'POST', body:fd})
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if (d.url) { mediaUrl = d.url; mediaType = d.media_type || 'image'; }
+        doPost();
+      })
+      .catch(function(){ btn.disabled = false; btn.textContent = '发布'; });
+  } else {
+    doPost();
+  }
+}
+</script>
+
+{% endblock %}

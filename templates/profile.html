@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}{{ user.nickname }} 的主页{% endblock %}
+{% block content %}
+
+<div class="nav-bar">
+  <a href="javascript:goBack()" class="back-btn">←</a>
+  <span class="nav-title">个人主页</span>
+</div>
+
+<div class="profile-card">
+  <div class="profile-avatar">👤</div>
+  <div class="profile-name">{{ user.nickname }}</div>
+  <div class="profile-username">@{{ user.username }}</div>
+  {% if user.is_admin %}<span class="badge badge-admin" style="margin-top:8px">管理员</span>{% endif %}
+  <div class="profile-stats">
+    <div class="profile-stat"><div class="n">{{ topics|length }}</div><div class="l">帖子</div></div>
+  </div>
+</div>
+
+<div class="section-title">我的帖子</div>
+<div class="topic-list">
+{% for t in topics %}
+  <a href="/topic/{{ t.id }}" class="topic-item">
+    <div class="topic-title">{{ t.title }}</div>
+    <div class="topic-meta">
+      <span>{{ t.created_at[:10] }}</span>
+      <span>{{ t.reply_count }} 回复</span>
+      <span>{{ t.like_count }} 赞</span>
+    </div>
+  </a>
+{% else %}
+  <div class="empty-state">还没有发帖</div>
+{% endfor %}
+</div>
+
+<div style="margin-top:20px">
+  <a href="/logout" class="btn btn-block btn-danger" style="display:block;text-align:center;padding:10px;border-radius:6px;color:#fff;text-decoration:none">退出登录</a>
+  <a href="/" class="btn btn-block mt-8" style="display:block;text-align:center;padding:10px;border-radius:6px;text-decoration:none;background:#f0f0f0;color:#333">返回首页</a>
+</div>
+
+{% endblock %}

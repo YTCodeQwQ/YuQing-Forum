@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}搜索{% endblock %}
+{% block content %}
+
+<div class="nav-bar">
+  <a href="javascript:goBack()" class="back-btn">←</a>
+  <span class="nav-title">搜索</span>
+</div>
+
+<div style="padding:16px">
+  <form method="get" action="/search" style="display:flex;gap:8px;margin-bottom:16px">
+    <input type="text" name="q" value="{{ q }}" placeholder="搜索帖子标题或内容..." style="flex:1;border:1px solid #ddd;border-radius:6px;padding:10px 12px;font-size:15px">
+    <button type="submit" style="background:#1a73e8;color:#fff;border:none;border-radius:6px;padding:10px 20px;cursor:pointer">搜索</button>
+  </form>
+
+  {% if q %}
+    <div style="color:#888;font-size:13px;margin-bottom:12px">找到 {{ results|length }} 条结果</div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      {% for t in results %}
+      <a href="/topic/{{ t.id }}" style="background:#fff;border:1px solid #e4e4e4;border-radius:8px;padding:14px 16px;text-decoration:none;display:block">
+        <div style="font-weight:500;color:#333;margin-bottom:6px">{{ t.title }}</div>
+        <div style="font-size:13px;color:#888;display:flex;align-items:center;gap:6px"><span style="background:#eee;padding:1px 6px;border-radius:4px;font-size:12px">{{ t.board_name }}</span>{% if t.is_anonymous %}<div style="width:36px;height:36px;border-radius:50%;background:#888;color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0">匿</div>匿名{% else %}{{ user_avatar(t.author_avatar, t.author_nickname) }}<a href="/user/{{ t.user_id }}" style="color:#888">{{ t.author_nickname }}</a>{% endif %} · {{ t.created_at[:16] }}</div>
+      </a>
+      {% endfor %}
+      {% if not results %}
+      <div style="text-align:center;color:#aaa;padding:40px">没有找到相关帖子</div>
+      {% endif %}
+    </div>
+  {% endif %}
+</div>
+
+{% endblock %}

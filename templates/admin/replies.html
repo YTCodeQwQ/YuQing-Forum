@@ -1,0 +1,47 @@
+{% extends "admin/base.html" %}
+{% block content %}
+<div class="card">
+    <h2>💬 回复管理</h2>
+    <table>
+        <tr>
+            <th>ID</th>
+            <th>内容</th>
+            <th>帖子</th>
+            <th>作者</th>
+            <th>点赞</th>
+            <th>时间</th>
+            <th>操作</th>
+        </tr>
+        {% for r in replies %}
+        <tr>
+            <td>{{ r[0] }}</td>
+            <td>{{ r[1][:50] }}</td>
+            <td><a href="/topic/{{ r[5] }}" target="_blank">{{ r[5] }}</a></td>
+            <td>{{ r[4] or '未知' }}</td>
+            <td>{{ r[2] }}</td>
+            <td>{{ r[3][:10] }}</td>
+            <td>
+                <a href="#" class="btn btn-danger btn-sm" onclick="return false" data-action="delete" data-id="{{ r[0] }}">删除</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.querySelectorAll('[data-action="delete"]').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const id = this.dataset.id;
+        if (confirm('确认删除此回复？')) {
+            fetch('/admin/reply/' + id + '/delete', { method: 'POST' })
+                .then(r => r.json())
+                .then(d => location.reload())
+                .catch(e => alert('操作失败'));
+        }
+    });
+});
+</script>
+{% endblock %}

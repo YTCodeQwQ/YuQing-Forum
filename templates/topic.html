@@ -1,0 +1,251 @@
+{% extends "base.html" %}
+{% block title %}{{ topic.title }}{% endblock %}
+{% block content %}
+
+<div class="nav-bar">
+  <a href="/" class="back-btn">←</a>
+  <span class="nav-title">帖子</span>
+</div>
+
+<!-- 帖子主体 -->
+<div class="topic-detail">
+  <h2 id="topicTitle">{{ topic.title }}</h2>
+  <div class="topic-meta-bar" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+    <span style="display:flex;align-items:center;gap:6px">{% if not topic.is_anonymous %}{{ user_avatar(topic.author_avatar, topic.author_nickname) }}{% endif %}{{ "匿名" if topic.is_anonymous else topic.author_nickname }}{% if not topic.is_anonymous %}{{ level_badge(topic.author_level or 0, 'sm', topic.author_is_admin) }} <a href="/user/{{ topic.user_id }}" style="color:#888;font-size:12px;text-decoration:none">查看主页</a>{% endif %}</span>
+    <span>·</span>
+    <span>{{ (topic.created_at or '')[:16] }}</span>
+    <span>·</span>
+    <span>{{ topic.view_count }} 阅读</span>
+    <span>·</span>
+    <span>{{ topic.like_count }} 赞</span>
+    {% if user and (user.id == topic.user_id or user.is_admin) %}
+    <button class="btn btn-ghost" style="padding:4px 10px;font-size:12px" onclick="editTopic()">编辑</button>
+    <button class="btn btn-ghost" style="padding:4px 10px;font-size:12px;color:#d93025" onclick="deleteTopic()">删除</button>
+    {% endif %}
+  </div>
+  <div class="topic-body" id="topicBody">{{ topic.content }}</div>
+  {% if topic.media_url %}
+  <div class="topic-media">
+    {% if topic.media_type == 'video' %}
+    <video src="{{ topic.media_url }}" controls></video>
+    {% else %}
+    <img src="{{ topic.media_url }}">
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+
+<div style="display:flex;gap:8px;margin-bottom:16px">
+  <button id="likeBtn" class="btn like-btn" onclick="likeTopic()">{{ topic.like_count }} 赞</button>
+</div>
+
+<!-- 回复列表 -->
+<div class="replies-section">
+  <div class="replies-title">回复 ({{ replies|length }})</div>
+{% for r in replies %}
+  <div class="reply-item" id="reply-{{ r.id }}">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div style="display:flex;align-items:center;gap:8px">{% if not r.is_anonymous %}{{ user_avatar(r.author_avatar, r.author_nickname) }}<a href="/user/{{ r.user_id }}" style="color:inherit;text-decoration:none">{{ r.author_nickname or "匿名" }}</a>{{ level_badge(r.author_level or 0, 'xs', r.author_is_admin) }}{% else %}<div style="width:36px;height:36px;border-radius:50%;background:#888;color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700">匿</div><span style="color:#888">匿名</span>{% endif %}</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        {% if user and (user.id == r.user_id or user.is_admin) %}
+        <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:#d93025" onclick="deleteReply({{ r.id }})">删除</button>
+        {% endif %}
+        <span class="reply-time">{{ (r.created_at or '')[:16] }}</span>
+      </div>
+    </div>
+    <div class="reply-content" id="reply-content-{{ r.id }}">{{ r.content }}</div>
+    {% if r.media_url %}
+    <div class="reply-media">
+      {% if r.media_type == 'video' %}
+      <video src="{{ r.media_url }}" controls style="max-width:160px;max-height:100px;border-radius:6px"></video>
+      {% else %}
+      <img src="{{ r.media_url }}">
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+{% else %}
+  <div class="empty-state" style="padding:20px">还没有回复</div>
+{% endfor %}
+</div>
+
+{% if user %}
+<div class="reply-form">
+  <textarea id="replyContent" placeholder="写下你的回复..."></textarea>
+  <div style="margin-bottom:8px">
+    <input type="checkbox" id="replyAnon" style="accent-color:#1a73e8" onchange="document.getElementById('replyAnonValue').value = this.checked ? '1' : '0'">
+    <input type="hidden" id="replyAnonValue" value="0">
+    <label for="replyAnon" style="display:inline;font-size:13px;color:#555">匿名回复</label>
+  </div>
+  <div class="reply-form-actions">
+      <label style="font-size:16px;cursor:pointer">
+      <input type="file" id="replyMedia" accept="image/*,video/*" style="display:none" onchange="previewReplyMedia(this)">
+      📎
+    </label>
+    <div id="replyMediaPreview" style="display:none" class="upload-preview"></div>
+    <button class="btn" id="replySubmitBtn" onclick="postReply()" style="margin-left:auto">发送</button>
+  </div>
+  <div id="replyMediaUrl" style="display:none"></div>
+  <div id="replyMediaType" style="display:none"></div>
+</div>
+{% else %}
+<div style="text-align:center;padding:16px;background:#fff;border:1px solid #e4e4e4;border-radius:8px;margin-top:16px">
+  <a href="/login">登录</a> 后可回复
+</div>
+{% endif %}
+
+<!-- 编辑帖子弹窗 -->
+<div id="editTopicModal" class="modal-overlay">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <span class="modal-close" onclick="closeEditTopic()">×</span>
+    <div class="modal-name" style="font-size:16px">编辑帖子</div>
+    <div style="margin-top:12px">
+      <input type="text" id="editTopicTitle" placeholder="标题" style="width:100%;border:1px solid #ddd;border-radius:6px;padding:8px 10px;margin-bottom:8px">
+      <textarea id="editTopicContent" placeholder="内容" style="width:100%;border:1px solid #ddd;border-radius:6px;padding:8px 10px;min-height:100px;resize:vertical"></textarea>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="btn" style="flex:1" onclick="submitEditTopic()">保存</button>
+      <button class="btn btn-ghost" style="flex:1" onclick="closeEditTopic()">取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- 编辑回复弹窗 -->
+<div id="editReplyModal" class="modal-overlay">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <span class="modal-close" onclick="closeEditReply()">×</span>
+    <div class="modal-name" style="font-size:16px">编辑回复</div>
+    <textarea id="editReplyContent" placeholder="内容" style="width:100%;border:1px solid #ddd;border-radius:6px;padding:8px 10px;min-height:80px;resize:vertical;margin-top:12px"></textarea>
+    <input type="hidden" id="editReplyId">
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="btn" style="flex:1" onclick="submitEditReply()">保存</button>
+      <button class="btn btn-ghost" style="flex:1" onclick="closeEditReply()">取消</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function likeTopic() {
+  fetch('/api/like', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({topic_id: {{ topic.id }}})
+  }).then(function(r){ return r.json(); })
+    .then(function(d){ if(d.success) location.reload(); });
+}
+
+function deleteTopic() {
+  if (!confirm('确认删除帖子？')) return;
+  fetch('/api/topic/delete', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({topic_id: {{ topic.id }}})
+  }).then(function(r){ return r.json(); })
+    .then(function(d){ if(d.success) location.href='/board/{{ topic.board_slug }}'; else alert(d.error||'删除失败'); });
+}
+
+function editTopic() {
+  document.getElementById('editTopicTitle').value = document.getElementById('topicTitle').textContent;
+  document.getElementById('editTopicContent').value = document.getElementById('topicBody').textContent;
+  document.getElementById('editTopicModal').classList.add('show');
+}
+
+function closeEditTopic() {
+  document.getElementById('editTopicModal').classList.remove('show');
+}
+
+function submitEditTopic() {
+  var title = document.getElementById('editTopicTitle').value.trim();
+  var content = document.getElementById('editTopicContent').value.trim();
+  if (!content) return alert('内容不能为空');
+  fetch('/api/topic/edit', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({topic_id:{{ topic.id }}, title:title, content:content})
+  }).then(function(r){ return r.json(); })
+    .then(function(d){ if(d.success) { closeEditTopic(); location.reload(); } else alert(d.error||'保存失败'); });
+}
+
+function deleteReply(id) {
+  if (!confirm('确认删除回复？')) return;
+  fetch('/api/reply/delete', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({reply_id:id})
+  }).then(function(r){ return r.json(); })
+    .then(function(d){ if(d.success) document.getElementById('reply-'+id).remove(); else alert(d.error||'删除失败'); });
+}
+
+function editReply(id) {
+  document.getElementById('editReplyId').value = id;
+  document.getElementById('editReplyContent').value = document.getElementById('reply-content-'+id).textContent;
+  document.getElementById('editReplyModal').classList.add('show');
+}
+
+function closeEditReply() {
+  document.getElementById('editReplyModal').classList.remove('show');
+}
+
+function submitEditReply() {
+  var id = document.getElementById('editReplyId').value;
+  var content = document.getElementById('editReplyContent').value.trim();
+  if (!content) return alert('内容不能为空');
+  fetch('/api/reply/edit', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({reply_id:id, content:content})
+  }).then(function(r){ return r.json(); })
+    .then(function(d){ if(d.success) { closeEditReply(); location.reload(); } else alert(d.error||'保存失败'); });
+}
+
+var replyMediaBlobUrl = null;
+function previewReplyMedia(input) {
+  if (replyMediaBlobUrl) { URL.revokeObjectURL(replyMediaBlobUrl); replyMediaBlobUrl = null; }
+  if (input.files && input.files[0]) {
+    var preview = document.getElementById('replyMediaPreview');
+    var file = input.files[0];
+    replyMediaBlobUrl = URL.createObjectURL(file);
+    if (file.type.startsWith('video/')) {
+      preview.innerHTML = '<video src="'+replyMediaBlobUrl+'" controls style="max-width:100px;max-height:70px;border-radius:6px"></video>';
+    } else {
+      preview.innerHTML = '<img src="'+replyMediaBlobUrl+'">';
+    }
+    preview.style.display = 'block';
+  }
+}
+
+function postReply() {
+  var content = document.getElementById('replyContent').value.trim();
+  if (!content) return alert('回复内容不能为空');
+  var btn = document.getElementById('replySubmitBtn');
+  btn.disabled = true;
+  btn.textContent = '发送中...';
+  var mediaInput = document.getElementById('replyMedia');
+  var mediaUrl = '', mediaType = '';
+
+  function doReply() {
+    fetch('/api/reply', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({topic_id:{{ topic.id }}, content:content, media_url:mediaUrl, media_type:mediaType, is_anonymous:document.getElementById("replyAnonValue").value})
+    }).then(function(r){ return r.json(); })
+      .then(function(d){ btn.disabled = false; btn.textContent = '发送'; if(d.success) { if(replyMediaBlobUrl){URL.revokeObjectURL(replyMediaBlobUrl);replyMediaBlobUrl=null;} location.reload(); } else alert(d.error||'失败'); });
+  }
+
+  if (mediaInput.files && mediaInput.files[0]) {
+    var fd = new FormData();
+    fd.append('file', mediaInput.files[0]);
+    fetch('/api/upload', {method:'POST', body:fd})
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if (d.url) { mediaUrl = d.url; mediaType = d.media_type || 'image'; }
+        doReply();
+      })
+      .catch(function(){ btn.disabled = false; btn.textContent = '发送'; });
+  } else {
+    doReply();
+  }
+}
+</script>
+
+{% endblock %}

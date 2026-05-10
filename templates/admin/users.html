@@ -1,0 +1,63 @@
+{% extends "admin/base.html" %}
+{% block content %}
+<div class="card">
+    <h2>👥 用户列表</h2>
+    <table>
+        <tr>
+            <th>ID</th>
+            <th>用户名</th>
+            <th>昵称</th>
+            <th>等级</th>
+            <th>EXP</th>
+            <th>标签</th>
+            <th>状态</th>
+            <th>注册时间</th>
+            <th>操作</th>
+        </tr>
+        {% for u in users %}
+        <tr>
+            <td>{{ u[0] }}</td>
+            <td>{{ u[1] }}</td>
+            <td>{{ u[2] }}</td>
+            <td>Lv{{ u[3] }}</td>
+            <td>{{ u[4] }}</td>
+            <td>
+                {% for tag in user_tags_map[u[0]] %}
+                <span style="display: inline-block; padding: 2px 6px; background: {{ tag[2] }}; color: #fff; border-radius: 10px; font-size: 10px; margin: 1px;">{{ tag[1] }}</span>
+                {% endfor %}
+            </td>
+            <td>
+                {% if u[5] %}<span class="badge badge-admin">管理员</span>{% endif %}
+                {% if u[6] %}<span class="badge badge-banned">封禁</span>{% endif %}
+            </td>
+            <td>{{ u[7][:10] }}</td>
+            <td>
+                <a href="/admin/user/{{ u[0] }}/edit" class="btn btn-ghost">编辑</a>
+                {% if not u[5] %}
+                <a href="#" class="btn btn-danger" onclick="return false" data-action="ban" data-id="{{ u[0] }}">封禁</a>
+                {% else %}
+                <a href="#" class="btn btn-success" onclick="return false" data-action="unban" data-id="{{ u[0] }}">解封</a>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.querySelectorAll('[data-action="ban"], [data-action="unban"]').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const action = this.dataset.action;
+        const id = this.dataset.id;
+        const url = '/admin/user/' + id + '/' + action;
+        fetch(url, { method: 'POST' })
+            .then(r => r.json())
+            .then(d => { if (d.success) location.reload(); })
+            .catch(e => alert('操作失败'));
+    });
+});
+</script>
+{% endblock %}
